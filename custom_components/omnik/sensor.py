@@ -48,7 +48,7 @@ BASE_URL = 'http://{0}:{1}{2}'
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_PORT_INVERTER = 8899
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60)
+MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=5)
 
 CONF_INVERTER_HOST = 'inverter_host'
 CONF_INVERTER_PORT = 'inverter_port'
@@ -160,8 +160,8 @@ class OmnikSensor(SensorEntity):
     return True
 
   @property
-  def device_state_attributes(self):
-    """ Return the state attributes of the sensor. """
+  def extra_state_attributes(self):
+    """Return entity specific state attributes."""
     return self.p_subtypes
 
   @property
@@ -291,7 +291,8 @@ class OmnikData(object):
     self.get_statistics()
 
     """ Retrieve the data values for the sensors. """
-    self.update_sensor_values()
+    if self.interface_inverter.raw_msg is not None: self.update_sensor_values()
+    # self.update_sensor_values()
 
 class OmnikInverter():
   """ Class with function for reading data from the Omnik inverter. """
@@ -343,6 +344,7 @@ class OmnikInverter():
 
     try:
       """ Connect to server and send data. """
+      sock.settimeout(10)
       sock.connect((self._host, self._port))
       sock.sendall(OmnikInverter.generate_request(self._serial_number))
 
@@ -352,7 +354,7 @@ class OmnikInverter():
     except:
       """ Error handling. """
       self.raw_msg = None
-      _LOGGER.error('Could not connect to the inverter on %s:%s', self._host, self._port)
+      _LOGGER.exception('Could not connect to the inverter on %s:%s', self._host, self._port)
     finally:
       sock.close()
     return
